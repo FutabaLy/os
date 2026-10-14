@@ -12,14 +12,14 @@ function openTab(name,writeHash=true){
   if(name!=='lab')stop();
   document.querySelectorAll('.panel').forEach(el=>el.hidden=el.id!==name);
   document.querySelectorAll('[data-tab]').forEach(el=>{el.classList.toggle('active',el.dataset.tab===name);el.setAttribute('aria-pressed',String(el.dataset.tab===name));});
-  if(writeHash)window.history.replaceState(null,'',name==='exam'?`#exam-${currentYear}`:`#${name}`);
+  if(writeHash){window.history.replaceState(null,'',name==='exam'?`#exam-${currentYear}`:`#${name}`);window.scrollTo({top:Math.max(0,document.querySelector('.tabs').offsetTop-12),behavior:'smooth'});}
 }
 document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>openTab(el.dataset.tab)));
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>openTab(el.dataset.open)));
 function reset(){stop();model=makeModel($('model').value,$('capacity').value);state=createState(model);history=[];cursor=0;renderLab();}
 function run(index){
   if(state.processes[index]?.done || state.processes[index]?.blocked)return;
-  history.push(structuredClone(state));if(history.length>400)history.shift();
+  history.push(structuredClone(state));if(history.length>160)history.shift();
   step(state,index);if(status(state)!=='ready')stop();renderLab();
 }
 function next(){for(let offset=0;offset<state.processes.length;offset++){const i=(cursor+offset)%state.processes.length;if(!state.processes[i].done&&!state.processes[i].blocked){cursor=(i+1)%state.processes.length;run(i);return;}}stop();}

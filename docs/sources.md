@@ -29,8 +29,7 @@
 
 ## 补充核对来源
 
-- [2022 公开试卷扫描件（文都）](https://19654776.s21i.faiusr.com/61/ABUIABA9GAAg-te5jgYogPWonAI.pdf)
-- [2023 试卷 PDF](https://datastructure.ouxinyu.cn/PastPapers/Paper2023.pdf)
+- [2022 试卷另一转载](https://pgcode.cn/exams/408/years/2022/preview)
 - [2025 试卷另一转载](https://pgcode.cn/exams/408/years/2025/preview)
 - [2026 试卷另一转载](https://pgcode.cn/exams/408/years/2026/preview)
 - [OSTEP 作者公开教材：Semaphores](https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf)：用于核对信号量、互斥与顺序控制的基本语义。
@@ -38,6 +37,7 @@
 ## 编写与校验说明
 
 - 2014 年部分转载的解释段将 empty/full 初值对调，但同页代码及“初始为空”的题设说明应为空位 1000、产品 0。本项目按题设处理。
+- 检索到的 2022 年早期机构回忆材料存在题号互换和约束表述差异，未作为题号与前驱边的依据；以两份完整年度转载的一致内容为准。
 - 2011 银行题给出显式保存票号和逐顾客通知的握手版，避免隐含假设任意信号量都严格按票号唤醒。它不是最少信号量版，原题未要求最少。
 - 2017 题使用读写冲突对之间的三把锁，保留两个只读线程的并发，不把局部变量当共享资源。
 - 2019 中取筷子许可上限与实际同时进餐上限区分；仅承诺本方案避免循环等待死锁，不把它描述为无饥饿证明。

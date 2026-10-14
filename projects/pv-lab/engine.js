@@ -41,5 +41,6 @@ export function step(s,index) {
   }
   p.pc++;if(p.pc===p.code.length){if(p.loop){p.pc=0;p.cycles++;}else p.done=true;}
   s.tick++;s.last={index,line};s.log.push({tick:s.tick,name:p.name,text:op.text,result});
+  if(s.log.length>200)s.log.shift();
   return true;
 }
