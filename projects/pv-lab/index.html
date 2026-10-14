@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="408 操作系统 PV 大题交互实验室：记录型信号量调度、2009—2026 年真题索引、逐题推导与速查总结。"><title>PV 大题 · 408 操作系统可视化实验室</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div class="header-inner"><a class="brand" href="../"><span class="logo">P/V</span><span>同步与互斥实验室<small>408 · OPERATING SYSTEMS</small></span></a><nav aria-label="网站导航"><a href="../">OS 首页</a><a href="https://futabaly.github.io/co/">408 可视化 ↗</a><a href="https://futabaly.github.io/ds/">DS ↗</a><a href="https://futabaly.github.io/network/">CN ↗</a></nav></div></header>
+<main>
+<section class="intro"><div><div class="eyebrow">专题 01 / 进程同步</div><h1>PV 大题，<span>看懂每一步。</span></h1><p>把“等待谁、保护谁、通知谁”画清楚，再把每一个 P、V 放到正确的位置。</p></div><div class="intro-stats"><strong>2009—2026</strong><span>18 年索引 · 13 道相关大题</span><small>题意整理 + 自编解析 · 每题附原卷来源</small></div></section>
+<nav class="tabs" aria-label="专题栏目"><button class="active" data-tab="learn" aria-pressed="true">01 知识点</button><button data-tab="lab" aria-pressed="false">02 交互推导</button><button data-tab="exam" aria-pressed="false">03 历年真题</button><button data-tab="summary" aria-pressed="false">04 公式与速查</button></nav>
+<section id="learn" class="panel">
+<div class="section-title"><div><span class="eyebrow">FIRST PRINCIPLES</span><h2>先分清三种关系，再写代码</h2></div><button class="primary" data-open="lab">开始动手推导 →</button></div>
+<div class="three"><article class="card"><span class="number violet">01</span><h3>互斥 · 同一时刻只能一个</h3><p>多人修改同一共享对象，用一把锁保护临界区。先确认是否真的有读写冲突，读与读通常可以并行。</p><div class="formula">mutex = 1</div><code>P(mutex) → 临界区 → V(mutex)</code><p class="muted">锁住共享操作，不要连准备、计算、消费都锁住。</p></article><article class="card"><span class="number teal">02</span><h3>同步 · 这一步必须等那一步</h3><p>“完成 A 才能做 B”是一条通知。由完成者发出许可，依赖者申请许可。</p><div class="formula">done = 0</div><code>A → V(done) ⇢ P(done) → B</code><p class="muted">初始为 0 的前提是：事件尚未发生。</p></article><article class="card"><span class="number amber">03</span><h3>计数 · 同时可用的名额</h3><p>空位、产品、座位、碗分别计数。初值直接回答：“开始时有多少个可以申请？”</p><div class="formula">empty = N − k · full = k</div><code>申请名额 P → 使用 → 归还 V</code><p class="muted">N 为容量，k 为初始已有产品数，不是背死 0 和 N。</p></article></div>
+<div class="two"><article class="card"><h3>记录型信号量：先改数，再判断</h3><div class="two compact"><div><h4>P(S) / wait</h4><pre>S.value -= 1
+if S.value &lt; 0:
+  入等待队列并阻塞</pre></div><div><h4>V(S) / signal</h4><pre>S.value += 1
+if S.value &lt;= 0:
+  唤醒一个等待者</pre></div></div><p>两段都是原子操作。被唤醒者变为<strong>就绪</strong>，获得 CPU 后从原来 P 的后面继续，不能重新扣一次信号量。</p><div class="callout">S = −2 表示两个等待者，并不是“欠两个实际物品”。本实验明确采用允许负数的记录型语义。</div></article><article class="card"><h3>大题四步法</h3><ol class="steps"><li><strong>列动作</strong><span>有几个角色？每个执行一次还是循环执行？</span></li><li><strong>画关系</strong><span>共享资源画互斥；先后依赖画箭头；有限数量写容量。</span></li><li><strong>定含义与初值</strong><span>每个量都用一句话说明“申请的到底是什么”。</span></li><li><strong>放 P/V，再找反例</strong><span>尝试空、满、先运行后继、多人同时申请的调度。</span></li></ol></article></div>
+<article class="card dark"><div class="eyebrow">一张图读懂经典模板</div><h3>生产者和消费者用“空位 ↔ 产品”接力</h3><div class="flow"><div>生产者<small>P(empty)<br>P(mutex)<br>放入 → 解锁</small></div><span>V(full) →</span><div>缓冲区<small>容量 N<br>实际产品与许可<br>可能暂时不相等</small></div><span>← V(empty)</span><div>消费者<small>P(full)<br>P(mutex)<br>取出 → 解锁</small></div></div><p>一般先等资源，再拿访问该资源的锁。重点是不要持有“资源释放者也要拿的锁”去等待；不是所有 P 的排列都适用一句万能口诀。</p></article>
+<div class="callout warning"><strong>反例比背口诀更有效。</strong>消费者拿 mutex 后等 full，生产者却要先拿 mutex 才能放产品，两者就可能永远卡住。到交互推导选择“错误顺序”，亲手复现。</div>
+<p class="source-note">概念核对：<a href="https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf" target="_blank" rel="noopener">OSTEP · Semaphores（作者公开教材）</a>。本页为教学解释，考试伪代码与实际系统接口的具体实现需区分。</p>
+</section>
+<section id="lab" class="panel" hidden>
+<div class="section-title"><div><span class="eyebrow">STEP-BY-STEP SCHEDULER</span><h2>你来决定，哪个进程先走一步</h2></div><span class="pill">记录型信号量 · 原子单步</span></div>
+<div class="card controls"><label>模型<select id="model"><option value="buffer">生产者—消费者</option><option value="deadlock">错误顺序 · 复现死锁</option><option value="museum">2013 · 博物馆</option><option value="philosophers">2019 · 哲学家与碗</option><option value="precedence">2022 · 两线程前驱</option><option value="once">2024 · 一次写入读取</option><option value="tree">2025 · 植树流水线</option></select></label><label id="capacity-label">容量 / 碗数 N<select id="capacity"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label><div class="button-group"><button id="undo">← 上一步</button><button id="next" class="primary">调度一步 →</button><button id="play">▶ 自动</button><button id="reset">重置</button></div></div>
+<div class="lab-banner"><div><strong id="model-title"></strong><p id="model-note"></p></div><span id="status" role="status"></span></div>
+<div id="semaphores" class="semaphores"></div>
+<div class="card visual"><div class="section-title"><h3 id="resource-title">资源状态</h3><span id="tick" class="pill"></span></div><div id="resource-visual"></div><div id="variables" class="variables"></div></div>
+<div id="processes" class="processes"></div>
+<div class="card"><div class="section-title"><h3>执行轨迹</h3><span class="muted">阻塞 → 唤醒 → 就绪，一步不跳</span></div><div id="trace" class="trace" aria-live="polite"></div></div>
+</section>
+<section id="exam" class="panel" hidden>
+<div class="section-title"><div><span class="eyebrow">PAST EXAMS / 2009—2026</span><h2>按年份练，也按模型串起来</h2></div><span class="pill" id="progress"></span></div>
+<div class="callout">本专题收录 11 道 PV 设计大题及 2 道互斥原理分析题。题干为简述，保留关键约束；完整试卷见各题来源。知识检查为本站自编，不冒充原题小问。没有相关大题的年份同样列出。</div>
+<div class="exam-layout"><aside class="card year-sidebar"><label for="filter">筛选题型</label><select id="filter"><option value="all">全部年份</option><option value="PV 设计">PV 设计</option><option value="原理分析">原理分析</option><option value="todo">尚未标记掌握</option></select><div id="years" class="years"></div></aside><article id="question" class="card question"></article></div>
+</section>
+<section id="summary" class="panel" hidden>
+<div class="section-title"><div><span class="eyebrow">QUICK RECALL</span><h2>公式、模板与考场快速自查</h2></div><button id="print">打印速查页</button></div>
+<div class="three"><article class="card"><h3>信号量的账本</h3><div class="formula">S = S₀ + #V − #P</div><p>#P 包含已经执行减一但随后阻塞的申请。每次唤醒不再额外减一。</p><div class="formula">等待数 = max(0, −S)</div><p class="muted">仅针对本页记录型信号量语义。</p></article><article class="card"><h3>有界缓冲区的初值</h3><div class="formula">empty₀ = N − k<br>full₀ = k · mutex₀ = 1</div><p>N 是总容量，k 是初始产品数。并发执行中存在已预订、尚未发布的资源，不能强套 signed empty + full = N。</p></article><article class="card"><h3>哲学家与碗</h3><div class="formula">准入 = min(m, n−1)</div><div class="formula">进餐上限 = min(m, ⌊n/2⌋)</div><p>适用于 n≥3 人围桌、n 根相邻共享筷子、m 个碗的题设。准入限制取筷子阶段，进餐上限还受不相邻约束。</p></article></div>
+<article class="card"><h3>看题干，抓对应结构</h3><div class="table-scroll"><table><thead><tr><th>题干信号</th><th>写法</th><th>对应真题</th><th>适用边界</th></tr></thead><tbody>
+<tr><td>只有一个能进入</td><td>mutex=1，P/V 夹临界区</td><td>2013 / 2024</td><td>多个独立资源可以用不同锁</td></tr>
+<tr><td>A 完成才允许 B</td><td>A 后 V；B 前 P；初值 0</td><td>2020 / 2022</td><td>同线程天然顺序先去掉</td></tr>
+<tr><td>不同种类由不同人取</td><td>按类别拆 ready</td><td>2009</td><td>空位仍共享一套容量</td></tr>
+<tr><td>某人连续做 k 次</td><td>批次锁包循环，资源锁包单次</td><td>2014</td><td>不能持缓冲锁等补货</td></tr>
+<tr><td>初始已有 x 个</td><td>full=x，empty=N−x</td><td>2015</td><td>不要机械地全置 0</td></tr>
+<tr><td>最多未完成 k 个阶段</td><td>额外容量量 k，阶段退出后归还</td><td>2025</td><td>明确何时不再占这个名额</td></tr>
+<tr><td>尽可能少的信号量</td><td>先判断顺序是否已隐含互斥</td><td>2024 / 2025</td><td>一次性与循环执行分开看</td></tr>
+<tr><td>尽量并发</td><td>只保护真正的读写冲突</td><td>2017</td><td>别把所有读者串行化</td></tr>
+</tbody></table></div></article>
+<div class="two"><article class="card"><h3>交卷前 6 个检查点</h3><ol class="checklist"><li>每个信号量都写了含义和初值。</li><li>每个 P 等的资源都有某个 V 会产生。</li><li>放入/取出与 V 的对象没有写反。</li><li>没有拿着对方需要的锁等待对方。</li><li>循环、一轮次数、一次性条件符合题意。</li><li>私有计算移出临界区，没添加多余先后关系。</li></ol></article><article class="card warning"><h3>三句话不能绝对化</h3><p><strong>“PV 必须在同一进程成对”</strong>：互斥锁通常如此；同步通知经常是 A 的 V 配 B 的 P。</p><p><strong>“V 的顺序永远无所谓”</strong>：必须先完成要发布的数据操作；能否交换还要看锁与可见性语义。</p><p><strong>“不死锁就是完全正确”</strong>：还需检查容量、通知对象、额外串行化与饥饿条件。</p></article></div>
+</section>
+<footer><span>OS / PV LAB · 知识点、真题与速查相互对应</span><a href="https://github.com/FutabaLy/os">源码与 README ↗</a><span>来源核对：2026-10-14</span></footer>
+</main><script type="module" src="app.js"></script></body></html>
