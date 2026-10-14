@@ -1,4 +1,4 @@
-# os · 操作系统可视化实验室
+# OS · 操作系统可视化实验室
 
 **[网站首页](https://futabaly.github.io/os/)** · **[PV 大题专题](https://futabaly.github.io/os/pv-lab/)**
 
@@ -54,6 +54,6 @@ docs/sources.md    年度清单与来源说明
 
 ## 关联学习网站
 
-- [408 可视化 co](https://futabaly.github.io/co/)
-- [数据结构 DS](https://futabaly.github.io/ds/)
-- [计算机网络 CN](https://futabaly.github.io/network/)
+- [CO](https://futabaly.github.io/co/)
+- [DS](https://futabaly.github.io/ds/)
+- [CN](https://futabaly.github.io/cn/)
