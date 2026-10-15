@@ -7,24 +7,24 @@ q(2009,45,'奇偶分流：通知正确的消费者','buffer',
 [['slots','N','尚可申请的空位'],['oddReady','0','已发布的奇数许可'],['evenReady','0','已发布的偶数许可'],['lock','1','共享区操作互斥']],
 ['先找共享区：三个角色都操作它，用同一把锁。','再按消费者条件拆通知：奇数和偶数不能共用一个 ready。','放入后按类型 V；取出后归还空位。统计移到锁外。'],
 `semaphore slots=N, oddReady=0, evenReady=0, lock=1;
-生产者: while (true) {
-  x = 生成正整数();
+Producer: while (true) {
+  x = generatePositiveInteger();
   P(slots); P(lock);
-  放入(x);
+  insert(x);
   V(lock);
   if (x % 2 == 1) V(oddReady); else V(evenReady);
 }
-奇数消费者: while (true) {
+OddConsumer: while (true) {
   P(oddReady); P(lock);
-  x = 取出奇数();
+  x = removeOdd();
   V(lock); V(slots);
-  统计奇数(x);
+  countOdd(x);
 }
-偶数消费者: while (true) {
+EvenConsumer: while (true) {
   P(evenReady); P(lock);
-  x = 取出偶数();
+  x = removeEven();
   V(lock); V(slots);
-  统计偶数(x);
+  countEven(x);
 }`,
 ['一个 full 不能告诉被唤醒者里面是否有自己能取的类型。','不要持有 lock 再等 oddReady 或 slots。'],
 {prompt:'共享区初始为空，oddReady 的初值应为？',options:['0','1','N'],answer:0,why:'奇数尚未产生，没有可消费的奇数许可。'}),
@@ -33,20 +33,20 @@ q(2011,45,'银行叫号：座位、取号与服务','museum',
 [['seats','10','等候名额'],['queueLock','1','取号与队列操作的锁'],['waiting','0','已入队的顾客'],['called[i] / arrived[i] / finished[i]','均为 0','对应顾客的叫号、到柜台、服务完成通知']],
 ['容量管等候座位，不是把整个银行锁成单人。','用队列保存取号次序；锁内取号入队，不能在锁内等叫号。','下面给出带顾客身份的完整握手版：called[i] 防止叫到甲却由乙领取通知；到柜台后释放座位。'],
 `semaphore seats=10, queueLock=1, waiting=0;
-// 每位顾客 i 有独立的 called[i], arrived[i], finished[i]，均为 0。
-顾客(i): {
+// Initialize private semaphores called[i], arrived[i], finished[i] to 0 for each customer i.
+Customer(i): {
   P(seats);
-  P(queueLock); 取号并把 i 入队(); V(queueLock);
+  P(queueLock); takeTicketAndEnqueue(i); V(queueLock);
   V(waiting);
   P(called[i]);
-  离开座位到柜台(); V(seats); V(arrived[i]);
-  P(finished[i]); 离开银行();
+  goToCounter(); V(seats); V(arrived[i]);
+  P(finished[i]); leaveBank();
 }
-柜员: while (true) {
+Teller: while (true) {
   P(waiting);
-  P(queueLock); i=队首出队(); V(queueLock);
+  P(queueLock); i=dequeue(); V(queueLock);
   V(called[i]); P(arrived[i]);
-  为 i 服务(); V(finished[i]);
+  serve(i); V(finished[i]);
 }`,
 ['本解法显式维护身份与握手，信号量并非最少版；原题没有要求最少。','普通信号量不天然承诺按票号唤醒；不能把 FIFO 服务次序当成任何实现都保证的性质。'],
 {prompt:'顾客到柜台接受服务时，等候座位应怎样处理？',options:['一直占用到离开银行','归还一个等候名额','将所有座位清零'],answer:1,why:'座位限制的是等待区，已离开等待区的顾客应归还名额。'}),
@@ -55,11 +55,11 @@ q(2013,45,'博物馆：限流不等于串行参观','museum',
 [['quota','500','可预订的入馆名额'],['door','1','进出门互斥']],
 ['容量与门是两种资源，分开设信号量。','入场先预订名额，再进入门的临界区。','参观在门锁外；离馆穿门完成后归还名额。'],
 `semaphore quota=500, door=1;
-游客: {
+Visitor: {
   P(quota);
-  P(door); 进门(); V(door);
-  参观();
-  P(door); 出门(); V(door);
+  P(door); enter(); V(door);
+  visit();
+  P(door); exit(); V(door);
   V(quota);
 }`,
 ['若持门锁等名额，满馆时会挡住出门的人，形成循环等待。','把参观夹在 door 内会使所有参观串行化。'],
@@ -69,16 +69,16 @@ q(2014,47,'连续取十件：批次锁与缓冲锁','buffer',
 [['space','1000','可写空位'],['ready','0','可取产品'],['bufferLock','1','单次访问缓冲区'],['batchLock','1','消费者十件批次互斥']],
 ['先按普通有界缓冲区写出单件取放。','只在消费者一侧增加 batchLock，覆盖十次取货。','bufferLock 每件释放；缺货时只持 batchLock 等待，生产者仍可补货。'],
 `semaphore space=1000, ready=0, bufferLock=1, batchLock=1;
-生产者: while (true) {
-  x=生产(); P(space); P(bufferLock);
-  放入(x); V(bufferLock); V(ready);
+Producer: while (true) {
+  x=produce(); P(space); P(bufferLock);
+  insert(x); V(bufferLock); V(ready);
 }
-消费者: while (true) {
+Consumer: while (true) {
   P(batchLock);
   for (i=0; i<10; i++) {
     P(ready); P(bufferLock);
-    x=取出(); V(bufferLock); V(space);
-    消费(x);
+    x=remove(); V(bufferLock); V(space);
+    consume(x);
   }
   V(batchLock);
 }`,
@@ -91,14 +91,14 @@ q(2015,45,'双信箱：初值由现状决定','buffer',
 `semaphore aFull=x, aEmpty=M-x, bFull=y, bEmpty=N-y;
 semaphore aLock=1, bLock=1;
 A: while (true) {
-  P(aFull); P(aLock); 取A箱(); V(aLock); V(aEmpty);
-  回答并生成新问题();
-  P(bEmpty); P(bLock); 投B箱(); V(bLock); V(bFull);
+  P(aFull); P(aLock); receiveA(); V(aLock); V(aEmpty);
+  replyAndPrepareMessage();
+  P(bEmpty); P(bLock); sendB(); V(bLock); V(bFull);
 }
 B: while (true) {
-  P(bFull); P(bLock); 取B箱(); V(bLock); V(bEmpty);
-  回答并生成新问题();
-  P(aEmpty); P(aLock); 投A箱(); V(aLock); V(aFull);
+  P(bFull); P(bLock); receiveB(); V(bLock); V(bEmpty);
+  replyAndPrepareMessage();
+  P(aEmpty); P(aLock); sendA(); V(aLock); V(aFull);
 }`,
 ['不是所有同步量都从 0 开始。','不能让 A 等待 aEmpty 才去取 A 箱：取出应等待的是 aFull。'],
 {prompt:'A 箱的空位信号量初值为？',options:['M','M−x','x'],answer:1,why:'已有 x 封占位，所以剩余 M−x 个位置。'}),
@@ -125,11 +125,11 @@ q(2019,43,'哲学家：碗既是资源也是限流器','philosophers',
 [['permit','min(m,n−1)','同时参与取筷子的名额'],['fork[i]','每个为 1','第 i 根筷子']],
 ['每根筷子是独占资源，分别设互斥量。','先用 permit 控制最多 n−1 人进入取筷子阶段，切断全员各持一根的环。','碗较少时还要受 m 限制；进餐上限与取筷子许可数是两个不同数字。'],
 `semaphore permit=min(m,n-1);
-// 对每个 i=0..n-1 分别初始化 fork[i]=1。
-哲学家(i): while (true) {
-  思考(); P(permit);
+// Initialize every fork[i] to 1 for i = 0, ..., n-1.
+Philosopher(i): while (true) {
+  think(); P(permit);
   P(fork[i]); P(fork[(i+1)%n]);
-  进餐();
+  eat();
   V(fork[(i+1)%n]); V(fork[i]); V(permit);
 }`,
 ['不能把所有 fork 用某些 C 初始化写法误设为只有第一个是 1。','最多同时进餐 min(m,⌊n/2⌋)，不是 min(m,n−1)。','防死锁不自动证明任意不公平调度下都无饥饿。'],
@@ -139,27 +139,27 @@ q(2020,45,'五操作前驱：汇合处要等齐','precedence',
 [['ac / bc / ce / de','全部为 0','四条前驱边上的完成通知']],
 ['先画 A→C、B→C、C→E、D→E。','每条边分别从 0 开始，起点执行后 V，终点执行前 P。','汇合是 AND：需要两条许可，而不是任意一个前驱完成就继续。'],
 `semaphore ac=0, bc=0, ce=0, de=0;
-A: { 执行A(); V(ac); }
-B: { 执行B(); V(bc); }
-C: { P(ac); P(bc); 执行C(); V(ce); }
-D: { 执行D(); V(de); }
-E: { P(ce); P(de); 执行E(); }`,
+A: { executeA(); V(ac); }
+B: { executeB(); V(bc); }
+C: { P(ac); P(bc); executeC(); V(ce); }
+D: { executeD(); V(de); }
+E: { P(ce); P(de); executeE(); }`,
 ['不要把前驱通知初值置 1，否则后继可以抢跑。','演示选择 2022 的跨线程前驱模型；本题按五个独立操作分析。'],
 {prompt:'C 执行前需要满足什么？',options:['A 或 B 任一个完成','A 和 B 都完成','只等 A'],answer:1,why:'两条入边是共同约束，分别 P(ac)、P(bc)。'}),
 q(2021,45,'原语实现：关中断后为何不能死等','deadlock',
 '比较两种整型信号量实现：一是在关中断状态下一直等待 S>0；二是在等待循环里短暂开中断再关中断。分析互斥、进展性及用户态权限。',
 [['S','题设给定','被原语共同访问的计数；本题是整型忙等实现']],
 ['S 的读改写必须原子化，否则会丢失更新。','在单处理机题设下，关闭中断后一直自旋，其他进程没有机会执行 signal。','循环内打开中断允许调度；最终检查与减一仍在关中断区完成。开关中断是特权操作。'],
-`// 单处理机题设下的方法 2；不是通用多核互斥实现。
+`// Method 2 under the single-CPU assumption; not a general multicore implementation.
 wait(S): {
-  关中断();
-  while (S <= 0) { 开中断(); 关中断(); }
+  disableInterrupts();
+  while (S <= 0) { enableInterrupts(); disableInterrupts(); }
   S = S - 1;
-  开中断();
+  enableInterrupts();
 }
-signal(S): { 关中断(); S = S + 1; 开中断(); }
-// 方法 1 在 while 循环内始终关中断：S<=0 时不能保证进展。
-// 用户态不能直接执行开/关中断指令。`,
+signal(S): { disableInterrupts(); S = S + 1; enableInterrupts(); }
+// Method 1 keeps interrupts disabled while spinning: no progress when S <= 0.
+// Interrupt control requires privileged execution.`,
 ['不要把整型信号量的忙等与记录型信号量的阻塞混为一谈。','本核关中断不能阻止其他核并发访问 S。','演示里的死锁是持锁等资源，帮助理解进展性，不是 CPU 中断仿真。'],
 {prompt:'本核关中断可以作为通用多核互斥手段吗？',options:['可以，所有核都会停','不可以，其他核仍可访问共享变量','只要 S=1 就可以'],answer:1,why:'局部中断屏蔽不等于跨 CPU 的原子互斥。'}),
 q(2022,46,'两线程六操作：省掉天然顺序','precedence',
@@ -182,27 +182,27 @@ q(2023,45,'原子 swap 与普通函数的边界','once',
 [['lock','false','共享忙闲标志'],['key','每个线程每次进入前为 true','线程私有的申请标志']],
 ['一次 if 不能使失败者等待，改为循环反复尝试。','退出将 lock 置 false，才能释放临界区。','普通函数的读取与写回可被交错，不具备原子交换保证。'],
 `shared bool lock=false;
-线程: {
-  bool key=true;        // 每个线程私有
+Thread: {
+  bool key=true;        // Thread-local variable.
   while (key == true)
     atomic_swap(key, lock);
-  临界区();
+  criticalSection();
   lock=false;
 }
-// 普通三条赋值实现的 swap 函数不可直接替代 atomic_swap。
-// 真实语言还需正确的原子类型和内存序；此处为考试抽象伪代码。`,
+// A non-atomic three-assignment swap cannot replace atomic_swap.
+// Exam pseudocode: real implementations require atomic types and memory ordering.`,
 ['这是自旋等待，不是让权等待。','函数看上去只有一行调用，不代表其内部是原子的。'],
 {prompt:'失败后仅执行一次 if 再进入临界区会怎样？',options:['自动阻塞','可能多个线程进入临界区','保证公平'],answer:1,why:'没有循环检验，交换失败者也会落入临界区。'}),
 q(2024,46,'同一个缓冲区，三种关系','once',
 '单分组缓冲区有写入 C1、读出 C2、修改 C3。分别讨论两进程写入；初始空且各做一次写/读；初始非空且各做一次修改。按小问使用尽量少的信号量。',
 [['done','0','第 (2) 问写入完成的通知'],['mutex','1','第 (3) 问两次修改的互斥；与前一问独立']],
 ['C1 访问共享可写对象，是临界区代码。','一次写后一次读只需一条通知，顺序本身消除了重叠。','两次修改不要求固定先后，只要求不重叠，所以用互斥锁。'],
-`// 第 (2) 问，初始为空，各执行一次。
+`// Part (2): initially empty; each process runs once.
 semaphore done=0;
 P1: { C1(); V(done); }
 P2: { P(done); C2(); }
 
-// 第 (3) 问，初始非空，独立的小问。
+// Part (3): initially nonempty; independent of part (2).
 semaphore mutex=1;
 P1: { P(mutex); C3(); V(mutex); }
 P2: { P(mutex); C3(); V(mutex); }`,
@@ -213,15 +213,15 @@ q(2025,45,'挖坑—填土—浇水：四个量够用','tree',
 [['space','3','可预订的树坑名额'],['pit','0','已挖好待填的坑'],['planted','0','已填土待浇水的树'],['shovel','1','甲乙对铁锹的互斥']],
 ['两条流水边需要 pit 与 planted，容量约束需要 space。','铁锹是甲乙共享资源，单独设互斥量；水桶没有竞争者。','填土后坑已消失，即可 V(space)，不必等浇水。'],
 `semaphore space=3, pit=0, planted=0, shovel=1;
-甲: while (true) {
-  P(space); P(shovel); 挖坑(); V(shovel); V(pit);
+Digger: while (true) {
+  P(space); P(shovel); digHole(); V(shovel); V(pit);
 }
-乙: while (true) {
-  P(pit); P(shovel); 放苗并填土(); V(shovel);
+Planter: while (true) {
+  P(pit); P(shovel); plantAndFill(); V(shovel);
   V(space); V(planted);
 }
-丙: while (true) {
-  P(planted); 浇水();
+Waterer: while (true) {
+  P(planted); waterTree();
 }`,
 ['乙若拿着铁锹等 pit，甲可能无法挖坑，造成死锁。','space 在填土后释放，不是在浇水后；否则加入了题目没有要求的约束。','无需给丙独用的水桶加互斥锁。'],
 {prompt:'space 应何时归还？',options:['挖坑后','填土完成后','浇水完成后'],answer:1,why:'space 限制未填的树坑；乙填完土就释放坑位额度。'})

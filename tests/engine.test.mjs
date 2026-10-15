@@ -1,3 +1,4 @@
+import {modelCode} from '../projects/pv-lab/model-code.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {makeModel,createState,step,status} from '../projects/pv-lab/engine.js';
@@ -64,4 +65,17 @@ test('static entry has all locally referenced files and no external style depend
   for(const [,path]of html.matchAll(/(?:src|href)="([^"#]+\.(?:css|js))"/g))assert(existsSync(new URL(path,url)));
   assert(!html.includes('cdn.tailwindcss.com'));
   for(const section of ['learn','lab','exam','summary'])assert(html.includes(`id="${section}"`));
+});
+
+test('answer and model code use English-only pseudocode with matching semaphore values',()=>{
+  for(const q of questions) assert(!/[^\x00-\x7F]/.test(q.code), String(q.year));
+  for(const kind of ['buffer','deadlock','museum','tree','precedence','once','philosophers']) {
+    for(const capacity of [1,3,6]) {
+      const model=makeModel(kind,capacity), code=modelCode(model,kind);
+      assert(!/[^\x00-\x7F]/.test(code));
+      for(const [name,value] of Object.entries(model.sems)) assert(code.includes(`semaphore ${name} = ${value};`));
+      assert.equal((code.match(/^process /gm)||[]).length,model.processes.length);
+      assert.equal((code.match(/\b[PV]\(/g)||[]).length,model.processes.reduce((n,p)=>n+p.code.filter(op=>op.op!=='action').length,0));
+    }
+  }
 });
