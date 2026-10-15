@@ -57,3 +57,11 @@ docs/sources.md    年度清单与来源说明
 - [CO](https://futabaly.github.io/co/)
 - [DS](https://futabaly.github.io/ds/)
 - [CN](https://futabaly.github.io/cn/)
+
+## 操作系统入门动画
+
+[下载 MP4（1080p，约 2 分 39 秒）](https://github.com/FutabaLy/os/raw/refs/heads/main/videos/os-intro/operating-system.mp4) · [可编辑项目与运行说明](videos/os-intro/README.md)
+
+黑底荧光绿动画介绍操作系统、CPU 调度、内存、文件系统、设备驱动和权限。按制作要求直接沿用 GitHub 参考视频的原音频，操作系统知识以画面说明呈现，文字不是音频字幕。
+
+![操作系统入门动画封面](videos/os-intro/poster.png)
